@@ -101,4 +101,14 @@ def hashLen0to16(candidate):
         a = bytes(candidate[0:4])
         return hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
     elif length > 0:
-        pass
+        a = bytes(candidate[0])
+        b = bytes(candidate[length >> 1])
+        c = bytes(candidate[length - 1])
+        y = lower32(a + (b << 8))
+        z = length + c * 4
+        return lower64(shiftMix(lower64(y * K2 ^ z * K3)) * K2)
+    else:
+        "Won't reach here."
+
+def hashLen17To32(candidate):
+    pass
