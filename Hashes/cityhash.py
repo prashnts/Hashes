@@ -80,3 +80,25 @@ def rotateByAtleast1(val, shift):
     """
     return (val >> shift) | lower64((val << (64 - shift)))
 
+def shiftMix(val):
+    """
+    """
+    return lower64(val ^ (val >> 47))
+
+def hashLen16(u, v):
+    """
+    """
+    uv = (v << 64) | u
+    return hash128to64(uv)
+
+def hashLen0to16(candidate):
+    length = len(candidate)
+    if length > 8:
+        a = bytes(candidate[0:8])
+        b = bytes(candidate[-8:-1] + candidate[-1])
+        return hashLen16(a, rotateByAtleast1(b + length, length)) ^ b
+    elif length >= 4:
+        a = bytes(candidate[0:4])
+        return hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
+    elif length > 0:
+        pass
