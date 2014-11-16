@@ -60,4 +60,23 @@ def hash128to64(candidate):
     """
     Hashes 128 input bits down to 64 bits of output.
     """
-    pass
+    kMul = 0x9ddfea08eb382d69
+    a = lower64((lower64(candidate) ^ higher64(candidate)) * kMul)
+    a ^= (a >> 47)
+    b = lower64((higher64(candidate) ^ a) * kMul)
+    b ^= (b >> 47)
+    b = b * kMul
+    return lower64(b)
+
+def rotate(val, shift):
+    """
+    Bitwise right rotate.
+    """
+    return val if shift == 0 else (val >> shift) | lower64((val << (64 - shift)))
+
+def rotateByAtleast1(val, shift):
+    """
+    Bitwise right rotate, same as rotate, but requires shift to be non-zero.
+    """
+    return (val >> shift) | lower64((val << (64 - shift)))
+
