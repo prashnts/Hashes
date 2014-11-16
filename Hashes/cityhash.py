@@ -202,3 +202,32 @@ def hashLenAbove64(candidate):
                      lower64(hashLen16(lower64(v), lower64(w)) +
                              x))
 
+def cityMurmur(candidate, seed):
+    """
+    """
+    length = len(candidate)
+    a = lower64(seed)
+    b = higher64(seed)
+    c, d = 0, 0
+    l = length - 16
+    if l <= 0:
+        a = lower64(shiftMix(lower64(a * K1)) * K1)
+        c = lower64(b * K1 + hashLen0to16(candidate))
+        d = shiftMix(lower64(a + (bytes(candidate[0:8]) if length >= 8 else c)))
+    else:
+        c = hashLen16(lower64(bytes(candidate[-8:-1] + candidate[-1]) + K1), a)
+        d = hashLen16(lower64(b + length), lower64(c + bytes(candidate[-16:-8])))
+        a = lower64(a + d)
+        while l > 0:
+            a ^= lower64(shiftMix(lower64(bytes(candidate[0:8]) * K1)) * K1)
+            a = lower64(a * K1)
+            b ^= a
+            c ^= lower64(shiftMix(lower64(bytes(candidate[8:16]) * K1)) * K1)
+            c = lower64(c * K1)
+            d ^= c
+            candidate = candidate[16:-1] + candidate[-1]
+            l -= 16
+    a = hashLen16(a, c)
+    b = hashLen16(d, b)
+
+    return ((a ^ b) << 64) | hashLen16(b, a)
