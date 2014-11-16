@@ -130,12 +130,14 @@ def _weakHashLen32WithSeeds(w, x, y, z, a, b):
 def weakHashLen32WithSeeds(candidate, a, b):
     return _weakHashLen32WithSeeds(bytes(candidate[0:8]),
                                    bytes(candidate[8:16]),
-                                   bytes(candidate[16:24])
+                                   bytes(candidate[16:24]),
                                    bytes(candidate[24:32]),
                                    a,
                                    b)
 
 def hashLen33To64(candidate):
+    """
+    """
     length = len(candidate)
     z = bytes(candidate[24:32])
     a = bytes(candidate[0:8]) + (length + bytes(candidate[-16:-8])) * K0
@@ -158,4 +160,45 @@ def hashLen33To64(candidate):
     ws = lower64(b + rotate(a, 31) + c)
     r = shiftMix(lower64((vf + ws) * K2 + (wf + vs) + K0))
     return lower64(shiftMix(lower64(r * K0 + vs)) * K2)
+
+def hashLenAbove64(candidate):
+    """
+    """
+    length = len(candidate)
+    x = bytes(candidate[0:8])
+    y = bytes(candidate[-16:-8]) ^ K1
+    z = bytes(candidate[-56:-48]) ^ K0
+    v = weakHashLen32WithSeeds(candidate[-64:-1] + candidate[-1], length, y)
+    w = weakHashLen32WithSeeds(candidate[-32:-1] + candidate[-1], lower64(length * K1), K0)
+
+    z = lower64(z + shiftMix(lower64(v)) * K1)
+    x = lower64(rotate(lower64(z + x), 39) * K1)
+    y = lower64(rotate(y, 33) * K1)
+
+    length = (length - 1) & ~63
+    while length is not 0:
+        xrv = lower64(x + y + higher64(v) + bytes(candidate[16:24]))
+        yrv = lower64(y + lower64(v) + bytes(candidate[48:56]))
+        x = lower64(rotate(xrv, 37) * K1)
+        y = lower64(rotate(yrv, 42) * K1)
+        x = lower64(rotate(xrv, 37) * K1)
+        x ^= lower64(w)
+        y ^= lower64(v)
+        z = rotate(z ^ higher64(w), 33)
+        v = weakHashLen32WithSeeds(candidate,
+                                   lower64(lower64(v) * K1),
+                                   lower64(x + higher64(w)))
+        w = weakHashLen32WithSeeds(candidate[32:-1] + candidate[-1],
+                                   lower64(z + lower64(w)),
+                                   y)
+        z, x = x, z
+        candidate = candidate[64:-1] + candidate[-1]
+        length -= 64
+
+    return hashLen16(lower64(hashLen16(higher64(v), higher64(w)) +
+                             shiftMix(y) *
+                             K1 +
+                             z),
+                     lower64(hashLen16(lower64(v), lower64(w)) +
+                             x))
 
