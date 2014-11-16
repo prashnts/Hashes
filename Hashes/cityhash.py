@@ -1,18 +1,12 @@
 #!/usr/bin/python
 #!encoding: UTF-8
 
-class CityHash:
-    """
-    Python implementation of Google's CityHash.
-    https://code.google.com/p/cityhash/
-    All the logics are being reproduced as it was in original implementation.
-    Additional source comments are added as and when required.
-    """
-
-    def __init__(self, arg):
-        super(CityHash, self).__init__()
-        self.arg = arg
-        
+"""
+Python implementation of Google's CityHash.
+https://code.google.com/p/cityhash/
+All the logics are being reproduced as it was in original implementation.
+Additional source comments are added as and when required.
+"""
 
 # Some primes between 2^63 and 2^64 for various usage.
 K0 = 0xc3a5c85c97cb3127 #14097894508562428199
@@ -231,3 +225,103 @@ def cityMurmur(candidate, seed):
     b = hashLen16(d, b)
 
     return ((a ^ b) << 64) | hashLen16(b, a)
+
+def hash128WithSeed(candidate, seed):
+    originalCandidate = candidate
+    length = len(candidate)
+    if length < 128:
+        return cityMurmur(candidate, seed)
+    else:
+        x = lower64(seed)
+        y = higher64(seed)
+        z = lower64(length * K1)
+
+        vf = lower64(lower64(rotate(y ^ K1, 49) * K1) + bytes(candidate[0:8]))
+        vs = lower64(lower64(rotate(vf, 42) * K1) + bytes(candidate[8:16]))
+        wf = lower64(lower64(rotate(lower64(y + z), 35) * K1) + x)
+        ws = lower64(rotate(lower64(x + bytes(candidate[88:96])), 53) * K1)
+        v = (vf << 64) | vs
+        w = (wf << 64) | ws
+
+        while length >= 128:
+            x = lower64(rotate(lower64(x + y + vf + bytes(candidate[16:24])), 37) * K1)
+            y = lower64(rotate(lower64(y + vs + bytes(candidate[48:55])), 42) * K1)
+            x ^= ws
+            y ^= vf
+            z = rotate(z ^ wf, 33)
+            v = weakHashLen32WithSeeds(candidate,
+                                       lower64(z + ws),
+                                       lower64(x + wf))
+            w = weakHashLen32WithSeeds(candidate[32:-1] + candidate[-1],
+                                       lower64(z + ws),
+                                       y)
+            vf, vs = higher64(v), lower64(v)
+            wf, ws = higher64(w), lower64(w)
+            z, x = x, z
+            candidate = candidate[64:-1] + candidate[-1]
+
+            x = lower64(rotate(lower64(x + y + vf + bytes(candidate[16:24])), 37) * K1)
+            y = lower64(rotate(lower64(y + vs + bytes(candidate[48:56])), 42) * K1)
+            z = rotate(z ^ wf, 33)
+
+            v = weakHashLen32WithSeeds(candidate,
+                                       lower64(vs * K1),
+                                       lower64(x + wf))
+            w = weakHashLen32WithSeeds(candidate[32:-1] + candidate[-1],
+                                       lower64(z + ws),
+                                       y)
+            vf, vs = higher64(v), lower64(v)
+            wf, ws = higher64(w), lower64(w)
+            z, x = x, z
+            candidate = candidate[64:-1] + candidate[-1]
+            length -= 128
+
+        y = lower64(y + rotate(wf, 37) * K0 + z)
+        x = lower64(x + rotate(lower64(vf + z), 49) * K0)
+
+        tail_done = 0
+
+        while tail_done < length:
+            tail_done += 32
+            y = lower64(rotate(lower64(y - x), 42) * K0 + vs)
+            wf = lower64(wf + bytes(originalCandidate[16 - tail_done:24 - tail_done]))
+            x = lower64(rotate(x, 49) * K0 + wf)
+            wf = lower64(wf + vf)
+            v = weakHashLen32WithSeeds(originalCandidate[-tail_done:-1] + originalCandidate[-1],
+                                       vf,
+                                       vs)
+            vf, vs = higher64(v), lower64(v)
+
+        x = hashLen16(x, vf)
+        y = hashLen16(y, wf)
+        hf = lower64(hashLen16(lower64(x + vs), ws) + y)
+        hs = lower64(hashLen16(lower64(x + ws), lower64(y + vs)))
+
+        return (hf << 64) | hs
+
+def hash64(candidate):
+    length = len(candidate)
+
+    if length <= 16:
+        return hashLen0to16(candidate)
+    elif length <= 32:
+        return hashLen17To32(candidate)
+    elif length <= 64:
+        return hashLen33To64(candidate)
+    else:
+        return hashLenAbove64(candidate)
+
+def hash64WithSeeds(candidate, seed0, seed1):
+    return hashLen16(lower64(hash64(candidate) - seed0), seed1)
+
+def hash64WithSeed(candidate, seed):
+    return hash64WithSeeds(candidate, K2, seed)
+
+def hash128(candidate):
+    length = len(candidate)
+
+    if length >= 16:
+        seed = ((bytes(candidate[8:16]) << 64) | (bytes(candidate[0:8]) ^ K3))
+        return hash128WithSeed(candidate[16:-1] + candidate[-1], seed)
+    else:
+        return hash128WithSeed(candidate, (K1 << 64) | K0)
