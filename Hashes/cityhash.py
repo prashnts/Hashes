@@ -111,4 +111,51 @@ def hashLen0to16(candidate):
         "Won't reach here."
 
 def hashLen17To32(candidate):
-    pass
+    a = lower64(bytes(candidate[0:8]) * K1)
+    b = bytes(candidate[8:16])
+    c = lower64(bytes(candidate[-8:-1] + candidate[-1]) * K2)
+    d = lower64(bytes(candidate[-16:-8]) * K0)
+    return int(str(hashLen16(lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d))) +
+               str(lower64(a + rotate(b ^ K3, 30) - c) + len(candidate)))
+
+def _weakHashLen32WithSeeds(w, x, y, z, a, b):
+    a += w
+    b = rotate(lower64(b + a + z), 21)
+    c = a
+    a += x
+    a = lower64(a + y)
+    b += rotate(a, 44)
+    return lower64(a+z) << 64 | lower64(b + c)
+
+def weakHashLen32WithSeeds(candidate, a, b):
+    return _weakHashLen32WithSeeds(bytes(candidate[0:8]),
+                                   bytes(candidate[8:16]),
+                                   bytes(candidate[16:24])
+                                   bytes(candidate[24:32]),
+                                   a,
+                                   b)
+
+def hashLen33To64(candidate):
+    length = len(candidate)
+    z = bytes(candidate[24:32])
+    a = bytes(candidate[0:8]) + (length + bytes(candidate[-16:-8])) * K0
+    a = lower64(a)
+    b = rotate(lower64(a + z), 52)
+    c = rotate(a, 37)
+    a = lower64(a + bytes(candidate[8:16]))
+    c = lower64(c + rotate(a, 7))
+    a = lower64(a + bytes(candidate[16:24]))
+    vf = lower64(a + z)
+    vs = lower64(b + rotate(a, 31) + c)
+    a = bytes(candidate[16: 24]) + bytes(candidate[-32:-24])
+    z = bytes(candidate[-8:-1] + candidate[-1])
+    b = rotate(lower64(a + z), 52)
+    c = rotate(a, 37)
+    a = lower64(a + bytes(candidate[-24:-16]))
+    c = lower64(c + rotate(a, 7))
+    a = lower64(a + bytes(candidate[-16:-8]))
+    wf = lower64(a + z)
+    ws = lower64(b + rotate(a, 31) + c)
+    r = shiftMix(lower64((vf + ws) * K2 + (wf + vs) + K0))
+    return lower64(shiftMix(lower64(r * K0 + vs)) * K2)
+
