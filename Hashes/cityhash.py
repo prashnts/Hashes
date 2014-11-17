@@ -109,8 +109,8 @@ def hashLen17To32(candidate):
     b = bytes(candidate[8:16])
     c = lower64(bytes(candidate[-8:-1] + candidate[-1]) * K2)
     d = lower64(bytes(candidate[-16:-8]) * K0)
-    return int(str(hashLen16(lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d))) +
-               str(lower64(a + rotate(b ^ K3, 30) - c) + len(candidate)))
+    return hashLen16(lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d),
+                     lower64(a + rotate(b ^ K3, 30) - c) + len(candidate))
 
 def _weakHashLen32WithSeeds(w, x, y, z, a, b):
     a += w
