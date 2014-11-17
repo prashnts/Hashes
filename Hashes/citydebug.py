@@ -19,24 +19,31 @@ def lower32(candidate):
     """
     Returns last 32 bits from candidate.
     """
+    print("lower32              ","paramet",candidate)
+    print("lower32              ","returns",candidate & 0xffffffff)
     return candidate & 0xffffffff
 
 def lower64(candidate):
     """
     Returns last 64 bits from candidate.
     """
+    print("lower64              ","paramet",candidate)
+    print("lower64              ","returns",candidate & 0xffffffffffffffff)
     return candidate & 0xffffffffffffffff
 
 def higher64(candidate):
     """
     Returns higher than 64 bits from candidate, by shifting lower end to right.
     """
+    print("higher64             ","paramet",candidate)
+    print("higher64             ","returns",candidate >> 64)
     return candidate >> 64
 
 def bytes(candidate):
     """
     Returns the hex-equivalent of byte-string.
     """
+    print("bytes                ","paramet",candidate)
     result = 0x0
 
     # Reversed the candidate, and builds a list of characters returned as their corresponding Unicode code point.
@@ -48,91 +55,125 @@ def bytes(candidate):
         # assumes the ASCII input of string.
         result <<= 8
         result |= character
+        print("bytes                ","interme",result)
 
+    print("bytes                ","returns",result)
     return result
 
 def hash128to64(candidate):
     """
     Hashes 128 input bits down to 64 bits of output.
     """
+    print("hash128to64          ","paramet",candidate)
     kMul = 0x9ddfea08eb382d69 #11376068507788127593
     a = lower64((lower64(candidate) ^ higher64(candidate)) * kMul)
     a ^= (a >> 47)
     b = lower64((higher64(candidate) ^ a) * kMul)
     b ^= (b >> 47)
     b = b * kMul
-    return lower64(b)
+    res = lower64(b)
+    print("hash128to64          ","returns",res)
+    return res
 
 def rotate(val, shift):
     """
     Bitwise right rotate.
     """
-    return val if shift == 0 else (val >> shift) | lower64((val << (64 - shift)))
+    print("rotate               ","paramet",val, shift)
+    res = val if shift == 0 else (val >> shift) | lower64((val << (64 - shift)))
+    print("rotate               ","returns",res)
+    return res
 
 def rotateByAtleast1(val, shift):
     """
     Bitwise right rotate, same as rotate, but requires shift to be non-zero.
     """
-    return (val >> shift) | lower64((val << (64 - shift)))
+    print("rotateByAtleast1     ","paramet",val, shift)
+    res = (val >> shift) | lower64((val << (64 - shift)))
+    print("rotateByAtleast1     ","returns",res)
+    return res
 
 def shiftMix(val):
     """
     """
-    return lower64(val ^ (val >> 47))
+    print("shiftMix             ","paramet",val)
+    res = lower64(val ^ (val >> 47))
+    print("shiftMix             ","returns",res)
+    return res
 
 def hashLen16(u, v):
     """
     """
+    print("hashLen16            ","paramet",u,v)
     uv = (v << 64) | u
-    return hash128to64(uv)
+    res = hash128to64(uv)
+    print("hashLen16            ","returns",res)
+    return res
 
 def hashLen0to16(candidate):
+    print("hashLen0to16         ","paramet",candidate)
     length = len(candidate)
     if length > 8:
         a = bytes(candidate[0:8])
         b = bytes(candidate[-8:-1] + candidate[-1])
-        return hashLen16(a, rotateByAtleast1(b + length, length)) ^ b
+        res = hashLen16(a, rotateByAtleast1(b + length, length)) ^ b
+        print("hashLen0to16 >8      ","returns",res)
+        return res
     elif length >= 4:
         a = bytes(candidate[0:4])
-        return hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
+        res = hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
+        print("hashLen0to16 >4      ","returns",res)
+        return res
     elif length > 0:
         a = bytes(candidate[0])
         b = bytes(candidate[length >> 1])
         c = bytes(candidate[length - 1])
         y = lower32(a + (b << 8))
         z = length + c * 4
-        return lower64(shiftMix(lower64(y * K2 ^ z * K3)) * K2)
+        res = lower64(shiftMix(lower64(y * K2 ^ z * K3)) * K2)
+        print("hashLen0to16 >0      ","returns",res)
+        return res
     else:
         "Won't reach here."
 
 def hashLen17To32(candidate):
+    print("hashLen17To32        ","paramet",candidate)
     a = lower64(bytes(candidate[0:8]) * K1)
     b = bytes(candidate[8:16])
     c = lower64(bytes(candidate[-8:-1] + candidate[-1]) * K2)
     d = lower64(bytes(candidate[-16:-8]) * K0)
-    return hashLen16(lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d),
+    res = hashLen16(lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d),
                      lower64(a + rotate(b ^ K3, 30) - c) + len(candidate))
+    print("hashLen17To32        ","returns",res)
+    return res
 
 def _weakHashLen32WithSeeds(w, x, y, z, a, b):
+    print("_weakHashLen32WithS  ","paramet",w,x,y,z,a,b)
     a += w
     b = rotate(lower64(b + a + z), 21)
     c = a
     a += x
     a = lower64(a + y)
     b += rotate(a, 44)
-    return lower64(a+z) << 64 | lower64(b + c)
+    res = lower64(a+z) << 64 | lower64(b + c)
+    print("_weakHashLen32WithS  ","returns",res)
+    return res
 
 def weakHashLen32WithSeeds(candidate, a, b):
-    return _weakHashLen32WithSeeds(bytes(candidate[0:8]),
+    print("weakHashLen32WithSe  ","paramet",candidate,a,b)
+    res =  _weakHashLen32WithSeeds(bytes(candidate[0:8]),
                                    bytes(candidate[8:16]),
                                    bytes(candidate[16:24]),
                                    bytes(candidate[24:32]),
                                    a,
                                    b)
+    print("weakHashLen32WithSe  ","returns",res)
+    return res
 
 def hashLen33To64(candidate):
     """
     """
+    print("hashLen33To64        ","paramet",candidate)
     length = len(candidate)
     z = bytes(candidate[24:32])
     a = bytes(candidate[0:8]) + (length + bytes(candidate[-16:-8])) * K0
@@ -154,11 +195,14 @@ def hashLen33To64(candidate):
     wf = lower64(a + z)
     ws = lower64(b + rotate(a, 31) + c)
     r = shiftMix(lower64((vf + ws) * K2 + (wf + vs) + K0))
-    return lower64(shiftMix(lower64(r * K0 + vs)) * K2)
+    res = lower64(shiftMix(lower64(r * K0 + vs)) * K2)
+    print("hashLen33To64        ","returns",res)
+    return res
 
 def hashLenAbove64(candidate):
     """
     """
+    print("hashLenAbove64       ","paramet",candidate)
     length = len(candidate)
     x = bytes(candidate[0:8])
     y = bytes(candidate[-16:-8]) ^ K1
@@ -190,16 +234,19 @@ def hashLenAbove64(candidate):
         candidate = candidate[64:-1] + candidate[-1]
         length -= 64
 
-    return hashLen16(lower64(hashLen16(higher64(v), higher64(w)) +
+    res =  hashLen16(lower64(hashLen16(higher64(v), higher64(w)) +
                              shiftMix(y) *
                              K1 +
                              z),
                      lower64(hashLen16(lower64(v), lower64(w)) +
                              x))
+    print("hashLenAbove64       ","returns",res)
+    return res
 
 def cityMurmur(candidate, seed):
     """
     """
+    print("cityMurmur          ","paramet",candidate)
     length = len(candidate)
     a = lower64(seed)
     b = higher64(seed)
@@ -225,13 +272,18 @@ def cityMurmur(candidate, seed):
     a = hashLen16(a, c)
     b = hashLen16(d, b)
 
-    return ((a ^ b) << 64) | hashLen16(b, a)
+    res = ((a ^ b) << 64) | hashLen16(b, a)
+    print("cityMurmur          ","returns",res)
+    return res
 
 def hash128WithSeed(candidate, seed):
+    print("hash128WithSeed     ","paramet",candidate,seed)
     originalCandidate = candidate
     length = len(candidate)
     if length < 128:
-        return cityMurmur(candidate, seed)
+        res = cityMurmur(candidate, seed)
+        print("hash128WithSeed 1   ","returns",res)
+        return res
     else:
         x = lower64(seed)
         y = higher64(seed)
@@ -298,19 +350,30 @@ def hash128WithSeed(candidate, seed):
         hf = lower64(hashLen16(lower64(x + vs), ws) + y)
         hs = lower64(hashLen16(lower64(x + ws), lower64(y + vs)))
 
-        return (hf << 64) | hs
+        res = (hf << 64) | hs
+        print("hash128WithSeed 2   ","returns",res)
+        return res
 
 def hash64(candidate):
     length = len(candidate)
 
+    print("hash64              ","paramet",candidate)
     if length <= 16:
-        return hashLen0to16(candidate)
+        res = hashLen0to16(candidate)
+        print("hash64              ","returns",res)
+        return res
     elif length <= 32:
-        return hashLen17To32(candidate)
+        res = hashLen17To32(candidate)
+        print("hash64              ","returns",res)
+        return res
     elif length <= 64:
-        return hashLen33To64(candidate)
+        res = hashLen33To64(candidate)
+        print("hash64              ","returns",res)
+        return res
     else:
-        return hashLenAbove64(candidate)
+        res = hashLenAbove64(candidate)
+        print("hash64              ","returns",res)
+        return res
 
 def hash64WithSeeds(candidate, seed0, seed1):
     return hashLen16(lower64(hash64(candidate) - seed0), seed1)
@@ -326,3 +389,5 @@ def hash128(candidate):
         return hash128WithSeed(candidate[16:-1] + candidate[-1], seed)
     else:
         return hash128WithSeed(candidate, (K1 << 64) | K0)
+
+hash64("LOLLLLLLlllllllllllL")
