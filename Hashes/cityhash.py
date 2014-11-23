@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3
+#!/usr/bin/env python3
 #!encoding: UTF-8
 
 """
@@ -6,8 +6,29 @@ Python implementation of Google's CityHash.
 https://code.google.com/p/cityhash/
 The process is being reproduced as it was in original implementation.
 Additional source comments are added as and when required.
-
 """
+
+##Copyright (c) 2011 Google, Inc.
+ # 
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ # 
+ # The above copyright notice and this permission notice shall be included in
+ # all copies or substantial portions of the Software.
+ # 
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ # THE SOFTWARE.
+ # 
+ #CityHash, by Geoff Pike and Jyrki Alakuijala
 
 # Some primes between 2^63 and 2^64 for various usage.
 K0 = 0xc3a5c85c97cb3127 #14097894508562428199
@@ -92,18 +113,17 @@ def hashLen0to16(candidate):
         a = bytes(candidate[0:8])
         b = bytes(candidate[-8:-1] + candidate[-1])
         return hashLen16(a, rotateByAtleast1(b + length, length)) ^ b
-    elif length >= 4:
+    if length >= 4:
         a = bytes(candidate[0:4])
         return hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
-    elif length > 0:
+    if length > 0:
         a = bytes(candidate[0])
         b = bytes(candidate[length >> 1])
         c = bytes(candidate[length - 1])
         y = lower32(a + (b << 8))
         z = length + c * 4
         return lower64(shiftMix(lower64(y * K2 ^ z * K3)) * K2)
-    else:
-        "Won't reach here."
+    return k2
 
 def hashLen17To32(candidate):
     a = lower64(bytes(candidate[0:8]) * K1)
