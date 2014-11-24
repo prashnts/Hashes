@@ -4,4 +4,4 @@
 from Hashes import cityhash
 #import Hashes
 
-print(cityhash.hash64("""LOL"""))
+print(cityhash.hash64("test"))

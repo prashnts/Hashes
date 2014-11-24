@@ -357,22 +357,22 @@ def hash128WithSeed(candidate, seed):
 def hash64(candidate):
     length = len(candidate)
 
-    print("hash64              ","paramet",candidate)
+    print("hash64               ","paramet",candidate)
     if length <= 16:
         res = hashLen0to16(candidate)
-        print("hash64              ","returns",res)
+        print("hash64               ","returns",res)
         return res
     elif length <= 32:
         res = hashLen17To32(candidate)
-        print("hash64              ","returns",res)
+        print("hash64               ","returns",res)
         return res
     elif length <= 64:
         res = hashLen33To64(candidate)
-        print("hash64              ","returns",res)
+        print("hash64               ","returns",res)
         return res
     else:
         res = hashLenAbove64(candidate)
-        print("hash64              ","returns",res)
+        print("hash64               ","returns",res)
         return res
 
 def hash64WithSeeds(candidate, seed0, seed1):
@@ -390,4 +390,4 @@ def hash128(candidate):
     else:
         return hash128WithSeed(candidate, (K1 << 64) | K0)
 
-hash64("LOLLLLLLlllllllllllL")
+hash64("test")
