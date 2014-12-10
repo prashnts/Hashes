@@ -1,0 +1,482 @@
+Wrote profile results to citydebug.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 0 s
+File: citydebug.py
+Function: lower32 at line 18
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    18                                           @profile
+    19                                           def lower32(candidate):
+    20                                               """
+    21                                               Returns last 32 bits from candidate.
+    22                                               """
+    23                                               return candidate & 0xffffffff
+
+Total time: 1e-06 s
+File: citydebug.py
+Function: lower64 at line 25
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    25                                           @profile
+    26                                           def lower64(candidate):
+    27                                               """
+    28                                               Returns last 64 bits from candidate.
+    29                                               """
+    30         4            1      0.2    100.0      return candidate & 0xffffffffffffffff
+
+Total time: 4e-06 s
+File: citydebug.py
+Function: higher64 at line 32
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    32                                           @profile
+    33                                           def higher64(candidate):
+    34                                               """
+    35                                               Returns higher than 64 bits from candidate, by shifting lower end to right.
+    36                                               """
+    37         2            4      2.0    100.0      return candidate >> 64
+
+Total time: 3.9e-05 s
+File: citydebug.py
+Function: bytes at line 39
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    39                                           @profile
+    40                                           def bytes(candidate):
+    41                                               """
+    42                                               Returns the hex-equivalent of byte-string.
+    43                                               """
+    44         2            0      0.0      0.0      result = 0x0
+    45                                           
+    46                                               # Reversed the candidate, and builds a list of characters returned as their corresponding Unicode code point.
+    47                                               # https://docs.python.org/2/library/functions.html#ord
+    48         2           16      8.0     41.0      characters = list(ord(character) for character in candidate[::-1])
+    49                                           
+    50        10            9      0.9     23.1      for character in characters:
+    51                                                   # Left shift 8 bits, and then add the current character. Automatically
+    52                                                   # assumes the ASCII input of string.
+    53         8            5      0.6     12.8          result <<= 8
+    54         8            7      0.9     17.9          result |= character
+    55                                           
+    56         2            2      1.0      5.1      return result
+
+Total time: 3.1e-05 s
+File: citydebug.py
+Function: hash128to64 at line 58
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    58                                           @profile
+    59                                           def hash128to64(candidate):
+    60                                               """
+    61                                               Hashes 128 input bits down to 64 bits of output.
+    62                                               """
+    63         1            1      1.0      3.2      kMul = 0x9ddfea08eb382d69 #11376068507788127593
+    64         1           17     17.0     54.8      a = lower64((lower64(candidate) ^ higher64(candidate)) * kMul)
+    65         1            1      1.0      3.2      a ^= (a >> 47)
+    66         1            7      7.0     22.6      b = lower64((higher64(candidate) ^ a) * kMul)
+    67         1            1      1.0      3.2      b ^= (b >> 47)
+    68         1            0      0.0      0.0      b = b * kMul
+    69         1            4      4.0     12.9      res = lower64(b)
+    70         1            0      0.0      0.0      return res
+
+Total time: 0 s
+File: citydebug.py
+Function: rotate at line 72
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    72                                           @profile
+    73                                           def rotate(val, shift):
+    74                                               """
+    75                                               Bitwise right rotate.
+    76                                               """
+    77                                               res = val if shift == 0 else (val >> shift) | lower64((val << (64 - shift)))
+    78                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: rotateByAtleast1 at line 80
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    80                                           @profile
+    81                                           def rotateByAtleast1(val, shift):
+    82                                               """
+    83                                               Bitwise right rotate, same as rotate, but requires shift to be non-zero.
+    84                                               """
+    85                                               res = (val >> shift) | lower64((val << (64 - shift)))
+    86                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: shiftMix at line 88
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    88                                           @profile
+    89                                           def shiftMix(val):
+    90                                               """
+    91                                               """
+    92                                               res = lower64(val ^ (val >> 47))
+    93                                               return res
+
+Total time: 4.2e-05 s
+File: citydebug.py
+Function: hashLen16 at line 95
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    95                                           @profile
+    96                                           def hashLen16(u, v):
+    97                                               """
+    98                                               """
+    99         1            1      1.0      2.4      uv = (v << 64) | u
+   100         1           40     40.0     95.2      res = hash128to64(uv)
+   101         1            1      1.0      2.4      return res
+
+Total time: 0.000121 s
+File: citydebug.py
+Function: hashLen0to16 at line 103
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   103                                           @profile
+   104                                           def hashLen0to16(candidate):
+   105         1            1      1.0      0.8      length = len(candidate)
+   106         1            1      1.0      0.8      if length > 8:
+   107                                                   a = bytes(candidate[0:8])
+   108                                                   b = bytes(candidate[-8:-1] + candidate[-1])
+   109                                                   res = hashLen16(a, rotateByAtleast1(b + length, length)) ^ b
+   110                                                   return res
+   111         1            0      0.0      0.0      elif length >= 4:
+   112         1           41     41.0     33.9          a = bytes(candidate[0:4])
+   113         1           77     77.0     63.6          res = hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
+   114         1            1      1.0      0.8          return res
+   115                                               elif length > 0:
+   116                                                   a = bytes(candidate[0])
+   117                                                   b = bytes(candidate[length >> 1])
+   118                                                   c = bytes(candidate[length - 1])
+   119                                                   y = lower32(a + (b << 8))
+   120                                                   z = length + c * 4
+   121                                                   res = lower64(shiftMix(lower64(y * K2 ^ z * K3)) * K2)
+   122                                                   return res
+   123                                               else:
+   124                                                   "Won't reach here."
+
+Total time: 0 s
+File: citydebug.py
+Function: hashLen17To32 at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                           @profile
+   127                                           def hashLen17To32(candidate):
+   128                                               a = lower64(bytes(candidate[0:8]) * K1)
+   129                                               b = bytes(candidate[8:16])
+   130                                               c = lower64(bytes(candidate[-8:-1] + candidate[-1]) * K2)
+   131                                               d = lower64(bytes(candidate[-16:-8]) * K0)
+   132                                               res = hashLen16(lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d),
+   133                                                                lower64(a + rotate(b ^ K3, 30) - c) + len(candidate))
+   134                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: _weakHashLen32WithSeeds at line 136
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   136                                           @profile
+   137                                           def _weakHashLen32WithSeeds(w, x, y, z, a, b):
+   138                                               a += w
+   139                                               b = rotate(lower64(b + a + z), 21)
+   140                                               c = a
+   141                                               a += x
+   142                                               a = lower64(a + y)
+   143                                               b += rotate(a, 44)
+   144                                               res = lower64(a+z) << 64 | lower64(b + c)
+   145                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: weakHashLen32WithSeeds at line 147
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   147                                           @profile
+   148                                           def weakHashLen32WithSeeds(candidate, a, b):
+   149                                               res =  _weakHashLen32WithSeeds(bytes(candidate[0:8]),
+   150                                                                              bytes(candidate[8:16]),
+   151                                                                              bytes(candidate[16:24]),
+   152                                                                              bytes(candidate[24:32]),
+   153                                                                              a,
+   154                                                                              b)
+   155                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: hashLen33To64 at line 157
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   157                                           @profile
+   158                                           def hashLen33To64(candidate):
+   159                                               """
+   160                                               """
+   161                                               length = len(candidate)
+   162                                               z = bytes(candidate[24:32])
+   163                                               a = bytes(candidate[0:8]) + (length + bytes(candidate[-16:-8])) * K0
+   164                                               a = lower64(a)
+   165                                               b = rotate(lower64(a + z), 52)
+   166                                               c = rotate(a, 37)
+   167                                               a = lower64(a + bytes(candidate[8:16]))
+   168                                               c = lower64(c + rotate(a, 7))
+   169                                               a = lower64(a + bytes(candidate[16:24]))
+   170                                               vf = lower64(a + z)
+   171                                               vs = lower64(b + rotate(a, 31) + c)
+   172                                               a = bytes(candidate[16: 24]) + bytes(candidate[-32:-24])
+   173                                               z = bytes(candidate[-8:-1] + candidate[-1])
+   174                                               b = rotate(lower64(a + z), 52)
+   175                                               c = rotate(a, 37)
+   176                                               a = lower64(a + bytes(candidate[-24:-16]))
+   177                                               c = lower64(c + rotate(a, 7))
+   178                                               a = lower64(a + bytes(candidate[-16:-8]))
+   179                                               wf = lower64(a + z)
+   180                                               ws = lower64(b + rotate(a, 31) + c)
+   181                                               r = shiftMix(lower64((vf + ws) * K2 + (wf + vs) + K0))
+   182                                               res = lower64(shiftMix(lower64(r * K0 + vs)) * K2)
+   183                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: hashLenAbove64 at line 185
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   185                                           @profile
+   186                                           def hashLenAbove64(candidate):
+   187                                               """
+   188                                               """
+   189                                               length = len(candidate)
+   190                                               x = bytes(candidate[0:8])
+   191                                               y = bytes(candidate[-16:-8]) ^ K1
+   192                                               z = bytes(candidate[-56:-48]) ^ K0
+   193                                               v = weakHashLen32WithSeeds(candidate[-64:-1] + candidate[-1], length, y)
+   194                                               w = weakHashLen32WithSeeds(candidate[-32:-1] + candidate[-1], lower64(length * K1), K0)
+   195                                           
+   196                                               z = lower64(z + shiftMix(lower64(v)) * K1)
+   197                                               x = lower64(rotate(lower64(z + x), 39) * K1)
+   198                                               y = lower64(rotate(y, 33) * K1)
+   199                                           
+   200                                               length = (length - 1) & ~63
+   201                                               while length is not 0:
+   202                                                   xrv = lower64(x + y + higher64(v) + bytes(candidate[16:24]))
+   203                                                   yrv = lower64(y + lower64(v) + bytes(candidate[48:56]))
+   204                                                   x = lower64(rotate(xrv, 37) * K1)
+   205                                                   y = lower64(rotate(yrv, 42) * K1)
+   206                                                   x = lower64(rotate(xrv, 37) * K1)
+   207                                                   x ^= lower64(w)
+   208                                                   y ^= lower64(v)
+   209                                                   z = rotate(z ^ higher64(w), 33)
+   210                                                   v = weakHashLen32WithSeeds(candidate,
+   211                                                                              lower64(lower64(v) * K1),
+   212                                                                              lower64(x + higher64(w)))
+   213                                                   w = weakHashLen32WithSeeds(candidate[32:-1] + candidate[-1],
+   214                                                                              lower64(z + lower64(w)),
+   215                                                                              y)
+   216                                                   z, x = x, z
+   217                                                   candidate = candidate[64:-1] + candidate[-1]
+   218                                                   length -= 64
+   219                                           
+   220                                               res =  hashLen16(lower64(hashLen16(higher64(v), higher64(w)) +
+   221                                                                        shiftMix(y) *
+   222                                                                        K1 +
+   223                                                                        z),
+   224                                                                lower64(hashLen16(lower64(v), lower64(w)) +
+   225                                                                        x))
+   226                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: cityMurmur at line 228
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   228                                           @profile
+   229                                           def cityMurmur(candidate, seed):
+   230                                               """
+   231                                               """
+   232                                               length = len(candidate)
+   233                                               a = lower64(seed)
+   234                                               b = higher64(seed)
+   235                                               c, d = 0, 0
+   236                                               l = length - 16
+   237                                               if l <= 0:
+   238                                                   a = lower64(shiftMix(lower64(a * K1)) * K1)
+   239                                                   c = lower64(b * K1 + hashLen0to16(candidate))
+   240                                                   d = shiftMix(lower64(a + (bytes(candidate[0:8]) if length >= 8 else c)))
+   241                                               else:
+   242                                                   c = hashLen16(lower64(bytes(candidate[-8:-1] + candidate[-1]) + K1), a)
+   243                                                   d = hashLen16(lower64(b + length), lower64(c + bytes(candidate[-16:-8])))
+   244                                                   a = lower64(a + d)
+   245                                                   while l > 0:
+   246                                                       a ^= lower64(shiftMix(lower64(bytes(candidate[0:8]) * K1)) * K1)
+   247                                                       a = lower64(a * K1)
+   248                                                       b ^= a
+   249                                                       c ^= lower64(shiftMix(lower64(bytes(candidate[8:16]) * K1)) * K1)
+   250                                                       c = lower64(c * K1)
+   251                                                       d ^= c
+   252                                                       candidate = candidate[16:-1] + candidate[-1]
+   253                                                       l -= 16
+   254                                               a = hashLen16(a, c)
+   255                                               b = hashLen16(d, b)
+   256                                           
+   257                                               res = ((a ^ b) << 64) | hashLen16(b, a)
+   258                                               return res
+
+Total time: 0 s
+File: citydebug.py
+Function: hash128WithSeed at line 260
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   260                                           @profile
+   261                                           def hash128WithSeed(candidate, seed):
+   262                                               originalCandidate = candidate
+   263                                               length = len(candidate)
+   264                                               if length < 128:
+   265                                                   res = cityMurmur(candidate, seed)
+   266                                                   return res
+   267                                               else:
+   268                                                   x = lower64(seed)
+   269                                                   y = higher64(seed)
+   270                                                   z = lower64(length * K1)
+   271                                           
+   272                                                   vf = lower64(lower64(rotate(y ^ K1, 49) * K1) + bytes(candidate[0:8]))
+   273                                                   vs = lower64(lower64(rotate(vf, 42) * K1) + bytes(candidate[8:16]))
+   274                                                   wf = lower64(lower64(rotate(lower64(y + z), 35) * K1) + x)
+   275                                                   ws = lower64(rotate(lower64(x + bytes(candidate[88:96])), 53) * K1)
+   276                                                   v = (vf << 64) | vs
+   277                                                   w = (wf << 64) | ws
+   278                                           
+   279                                                   while length >= 128:
+   280                                                       x = lower64(rotate(lower64(x + y + vf + bytes(candidate[16:24])), 37) * K1)
+   281                                                       y = lower64(rotate(lower64(y + vs + bytes(candidate[48:55])), 42) * K1)
+   282                                                       x ^= ws
+   283                                                       y ^= vf
+   284                                                       z = rotate(z ^ wf, 33)
+   285                                                       v = weakHashLen32WithSeeds(candidate,
+   286                                                                                  lower64(z + ws),
+   287                                                                                  lower64(x + wf))
+   288                                                       w = weakHashLen32WithSeeds(candidate[32:-1] + candidate[-1],
+   289                                                                                  lower64(z + ws),
+   290                                                                                  y)
+   291                                                       vf, vs = higher64(v), lower64(v)
+   292                                                       wf, ws = higher64(w), lower64(w)
+   293                                                       z, x = x, z
+   294                                                       candidate = candidate[64:-1] + candidate[-1]
+   295                                           
+   296                                                       x = lower64(rotate(lower64(x + y + vf + bytes(candidate[16:24])), 37) * K1)
+   297                                                       y = lower64(rotate(lower64(y + vs + bytes(candidate[48:56])), 42) * K1)
+   298                                                       z = rotate(z ^ wf, 33)
+   299                                           
+   300                                                       v = weakHashLen32WithSeeds(candidate,
+   301                                                                                  lower64(vs * K1),
+   302                                                                                  lower64(x + wf))
+   303                                                       w = weakHashLen32WithSeeds(candidate[32:-1] + candidate[-1],
+   304                                                                                  lower64(z + ws),
+   305                                                                                  y)
+   306                                                       vf, vs = higher64(v), lower64(v)
+   307                                                       wf, ws = higher64(w), lower64(w)
+   308                                                       z, x = x, z
+   309                                                       candidate = candidate[64:-1] + candidate[-1]
+   310                                                       length -= 128
+   311                                           
+   312                                                   y = lower64(y + rotate(wf, 37) * K0 + z)
+   313                                                   x = lower64(x + rotate(lower64(vf + z), 49) * K0)
+   314                                           
+   315                                                   tail_done = 0
+   316                                           
+   317                                                   while tail_done < length:
+   318                                                       tail_done += 32
+   319                                                       y = lower64(rotate(lower64(y - x), 42) * K0 + vs)
+   320                                                       wf = lower64(wf + bytes(originalCandidate[16 - tail_done:24 - tail_done]))
+   321                                                       x = lower64(rotate(x, 49) * K0 + wf)
+   322                                                       wf = lower64(wf + vf)
+   323                                                       v = weakHashLen32WithSeeds(originalCandidate[-tail_done:-1] + originalCandidate[-1],
+   324                                                                                  vf,
+   325                                                                                  vs)
+   326                                                       vf, vs = higher64(v), lower64(v)
+   327                                           
+   328                                                   x = hashLen16(x, vf)
+   329                                                   y = hashLen16(y, wf)
+   330                                                   hf = lower64(hashLen16(lower64(x + vs), ws) + y)
+   331                                                   hs = lower64(hashLen16(lower64(x + ws), lower64(y + vs)))
+   332                                           
+   333                                                   res = (hf << 64) | hs
+   334                                                   return res
+
+Total time: 0.000137 s
+File: citydebug.py
+Function: hash64 at line 336
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   336                                           @profile
+   337                                           def hash64(candidate):
+   338         1            2      2.0      1.5      length = len(candidate)
+   339                                           
+   340         1            1      1.0      0.7      if length <= 16:
+   341         1          133    133.0     97.1          res = hashLen0to16(candidate)
+   342         1            1      1.0      0.7          return res
+   343                                               elif length <= 32:
+   344                                                   res = hashLen17To32(candidate)
+   345                                                   return res
+   346                                               elif length <= 64:
+   347                                                   res = hashLen33To64(candidate)
+   348                                                   return res
+   349                                               else:
+   350                                                   res = hashLenAbove64(candidate)
+   351                                                   return res
+
+Total time: 0 s
+File: citydebug.py
+Function: hash64WithSeeds at line 353
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   353                                           @profile
+   354                                           def hash64WithSeeds(candidate, seed0, seed1):
+   355                                               return hashLen16(lower64(hash64(candidate) - seed0), seed1)
+
+Total time: 0 s
+File: citydebug.py
+Function: hash64WithSeed at line 357
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   357                                           @profile
+   358                                           def hash64WithSeed(candidate, seed):
+   359                                               return hash64WithSeeds(candidate, K2, seed)
+
+Total time: 0 s
+File: citydebug.py
+Function: hash128 at line 361
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   361                                           @profile
+   362                                           def hash128(candidate):
+   363                                               length = len(candidate)
+   364                                           
+   365                                               if length >= 16:
+   366                                                   seed = ((bytes(candidate[8:16]) << 64) | (bytes(candidate[0:8]) ^ K3))
+   367                                                   return hash128WithSeed(candidate[16:-1] + candidate[-1], seed)
+   368                                               else:
+   369                                                   return hash128WithSeed(candidate, (K1 << 64) | K0)
+

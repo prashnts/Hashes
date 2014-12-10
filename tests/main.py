@@ -2,6 +2,8 @@
 #!encoding: UTF-8
 
 from Hashes import cityhash
-#import Hashes
+import sys
 
-print(cityhash.hash64("test"))
+if __name__ == "__main__":
+    for i in sys.argv[1:]:
+        print(cityhash.hash64(i))
