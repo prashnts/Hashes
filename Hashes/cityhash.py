@@ -140,7 +140,7 @@ def _weakHashLen32WithSeeds(w, x, y, z, a, b):
     a += x
     a = lower64(a + y)
     b += rotate(a, 44)
-    return lower64(a+z) << 64 | lower64(b + c)
+    return lower64(a + z) << 64 | lower64(b + c)
 
 def weakHashLen32WithSeeds(candidate, a, b):
     return _weakHashLen32WithSeeds(bytes(candidate[0:8]),

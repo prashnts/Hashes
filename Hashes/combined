@@ -1,0 +1,147 @@
+procedure hash64 with argument candidate is
+    length := length_of_string(candidate)
+
+    if length <= 16 do
+        if length > 8 do
+            a := bytes(candidate[0:8])
+            b := bytes(candidate[-8:-1] + candidate[-1])
+            return hashLen16(a, rotateByAtleast1(b + length, length)) ^ b
+        else if length >= 4 do
+            a := bytes(candidate[0:4])
+            return hashLen16(length + (a << 3), bytes(candidate[-4:-1] + candidate[-1]))
+        else do
+            a := bytes(candidate[0])
+            b := bytes(candidate[length >> 1])
+            c := bytes(candidate[length - 1])
+            y := lower32(a + (b << 8))
+            z := length + c * 4
+            return lower64(lower64((lower64(y * K2 ^ z * K3)) ^ ((lower64(y * K2 ^ z * K3)) >> 47) * K2))
+
+    else if length <= 32 do
+        a := lower64(bytes(candidate[0:8]) * K1)
+        b := bytes(candidate[8:16])
+        c := lower64(bytes(candidate[-8:-1] + candidate[-1]) * K2)
+        d := lower64(bytes(candidate[-16:-8]) * K0)
+        u := lower64(rotate(lower64(a - b), 43) + rotate(c, 30) + d)
+        v := lower64(a + rotate(b ^ K3, 30) - c) + length_of_string(candidate)
+        uv := (v << 64) | u
+        a := lower64((lower64(uv) ^ higher64(uv)) * kMul)
+        a ^= (a >> 47)
+        b := lower64((higher64(uv) ^ a) * kMul)
+        b ^= (b >> 47)
+        b := b * kMul
+        return lower64(b)
+
+    else if length <= 64 do
+        z := bytes(candidate[24:32])
+        a := bytes(candidate[0:8]) + (length + bytes(candidate[-16:-8])) * K0
+        a := lower64(a)
+        b := rotate(lower64(a + z), 52)
+        c := rotate(a, 37)
+        a := lower64(a + bytes(candidate[8:16]))
+        c := lower64(c + rotate(a, 7))
+        a := lower64(a + bytes(candidate[16:24]))
+        vf := lower64(a + z)
+        vs := lower64(b + rotate(a, 31) + c)
+        a := bytes(candidate[16: 24]) + bytes(candidate[-32:-24])
+        z := bytes(candidate[-8:-1] + candidate[-1])
+        b := rotate(lower64(a + z), 52)
+        c := rotate(a, 37)
+        a := lower64(a + bytes(candidate[-24:-16]))
+        c := lower64(c + rotate(a, 7))
+        a := lower64(a + bytes(candidate[-16:-8]))
+        wf := lower64(a + z)
+        ws := lower64(b + rotate(a, 31) + c)
+        r := shiftMix(lower64((vf + ws) * K2 + (wf + vs) + K0))
+        return lower64(shiftMix(lower64(r * K0 + vs)) * K2)
+
+    else do
+        x := bytes(candidate[0:8])
+        y := bytes(candidate[-16:-8]) ^ K1
+        z := bytes(candidate[-56:-48]) ^ K0
+
+        a1 := length + bytes((candidate[-64:-1] + candidate[-1])[0:8])
+        b1 := rotate(lower64(y + a1 + bytes((candidate[-64:-1] + candidate[-1])[24:32])))
+        c1 := a1
+        a1 += bytes((candidate[-64:-1] + candidate[-1])[0:8])
+        a1 := lower64(a1 + bytes((candidate[-64:-1] + candidate[-1])[16:24]))
+        b1 += rotate(a1, 44)
+
+        v := lower64(a1 + bytes((candidate[-64:-1] + candidate[-1]))) << 64 | lower64(b1 + c1)
+
+        a2 := lower64(length * K1) + bytes((candidate[-32:-1] + candidate[-1])[0:8])
+        b2 := rotate(lower64(K0 + a2 + bytes((candidate[-32:-1] + candidate[-1])[24:32])))
+        c2 := a2
+        a2 += bytes((candidate[-32:-1] + candidate[-1])[0:8])
+        a2 := lower64(a2 + bytes((candidate[-32:-1] + candidate[-1])[16:24]))
+        b2 += rotate(a2, 44)
+
+        w := lower64(a2 + bytes((candidate[-32:-1] + candidate[-1]))) << 64 | lower64(b2 + c2)
+
+        z := lower64(z + shiftMix(lower64(v)) * K1)
+        x := lower64(rotate(lower64(z + x), 39) * K1)
+        y := lower64(rotate(y, 33) * K1)
+
+        length := (length - 1) & ~63
+
+        repeat while length is not 0
+            xrv := lower64(x + y + higher64(v) + bytes(candidate[16:24]))
+            yrv := lower64(y + lower64(v) + bytes(candidate[48:56]))
+            x := lower64(rotate(xrv, 37) * K1)
+            y := lower64(rotate(yrv, 42) * K1)
+            x := lower64(rotate(xrv, 37) * K1)
+            x ^= lower64(w)
+            y ^= lower64(v)
+            z := rotate(z ^ higher64(w), 33)
+
+            ai := lower64(lower64(v) * K1) + bytes(candidate[0:8])
+            bi := rotate(lower64(lower64(x + higher64(w)) + ai + bytes(candidate[24:32])))
+            ci := ai
+            ai += bytes(candidate[0:8])
+            ai := lower64(ai + bytes(candidate[16:24]))
+            bi += rotate(ai, 44)
+
+            v := lower64(ai + zi) << 64 | lower64(bi + ci)
+
+            aj := lower64(lower64(v) * K1) + bytes(candidate[32:-1] + candidate[-1])
+            bj := rotate(lower64(lower64(y + lower64(w)) + aj + bytes(candidate[24:32])))
+            cj := aj
+            aj += bytes(candidate[0:8])
+            aj := lower64(aj + bytes(candidate[16:24]))
+            bj += rotate(aj, 44)
+
+            w := lower64(aj + zj) << 64 | lower64(bj + cj)
+
+            z, x := x, z
+            candidate := candidate[64:-1] + candidate[-1]
+            length -= 64
+
+        uivi := (higher64(w) << 64) | higher64(v)
+
+        aii := lower64((lower64(uivi) ^ higher64(uivi)) * kMul)
+        aii ^= (aii >> 47)
+        bii := lower64((higher64(uivi) ^ aii) * kMul)
+        bii ^= (bii >> 47)
+        bii := bii * kMul
+
+        u := lower64(lower64(bii) + shiftMix(y) * K1 + z)
+
+        ujvj := (((lower64(w)) + x) << 64) | lower64(v)
+
+        ajj := lower64((lower64(ujvj) ^ higher64(ujvj)) * kMul)
+        ajj ^= (ajj >> 47)
+        bjj := lower64((higher64(ujvj) ^ ajj) * kMul)
+        bjj ^= (bjj >> 47)
+        bjj := bjj * kMul
+
+        v := lower64(lower64(bjj) + x)
+
+        uv := (v << 64) | u
+
+        akk := lower64((lower64(uv) ^ higher64(uv)) * kMul)
+        akk ^= (akk >> 47)
+        bkk := lower64((higher64(uv) ^ akk) * kMul)
+        bkk ^= (bkk >> 47)
+        bkk := bkk * kMul
+
+        return lower64(bkk)
